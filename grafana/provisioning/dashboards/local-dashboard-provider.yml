@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: local-observability
+    orgId: 1
+    folder: Local Lab
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

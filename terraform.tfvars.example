@@ -1,0 +1,5 @@
+aws_region                 = "us-east-1"
+localstack_endpoint        = "http://127.0.0.1:4566"
+enable_kubernetes          = true
+enable_dynamodb_lock_table = false
+kubernetes_context         = "kind-liav-infra-cluster"
