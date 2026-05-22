@@ -1,59 +1,108 @@
-# 🚀 Unified DevOps AI Control Plane & Observability Stack
+'''markdown
+# 🚀 Liav DevOps Infrastructure & AI Control Plane
 
-A production-ready, multi-container DevOps infrastructure that couples a **Long-Term AI Memory Engine** with a full **Observability Stack (LGTM)**. This control plane allows an AI Agent to persist context natively in PostgreSQL while providing engineers with real-time hardware telemetry, centralized logging, and proactive alerting.
+A comprehensive, end-to-end local infrastructure project integrating Infrastructure as Code (IaC), advanced observability, and an autonomous AI agent for self-managing infrastructure.
 
----
+## 🏗️ System Architecture Overview
 
-## 🏗️ System Architecture
+The system is designed as a complex local development environment simulating a full-scale cloud production setup, utilizing a multi-container architecture.
 
-The project orchestrates the following microservices using Docker:
-* **Central Dashboard (Streamlit):** An executive-grade UI that manages the AI memory grid, monitors live container operational health (via Docker Daemon API), and embeds clean telemetry streams.
-* **AI Ingestion & Database (PostgreSQL):** Persistent relational layer storing long-term chat contexts and synced codebases routed via n8n.
-* **Mock Cloud Infrastructure (LocalStack):** Simulates enterprise AWS SQS queues locally for distributed asynchronous messaging.
-* **Telemetry & Metrics (Prometheus & Grafana):** Ingests host-level and container computing metrics, displaying streamlined, standalone analytical panels.
-* **Log Aggregation (Loki):** Real-time, distributed log collection for rapid system auditing.
+### 1. Infrastructure as Code (IaC) Layer
+- Terraform: Manages local AWS resources (S3, SQS, DynamoDB, EC2) via LocalStack.
+- Kubernetes: Orchestrates Nginx workloads on Kind (Kubernetes in Docker) with dynamic ConfigMap and Service management.
+- Security: Automated security scanning using Checkov to ensure infrastructure best practices.
 
----
+### 2. AI Agent & Automation Pipeline
+- n8n Workflow: The central brain. It receives webhooks from the AI, processes the logic, stores chat history in PostgreSQL, and pushes commands to the SQS queue.
+- 'bridge.py': Scans the local codebase, filters forbidden files, and synchronizes the project state to the AI agent to maintain context awareness.
+- 'listen to ai.py': An automated listener that monitors the SQS queue. Upon receiving instructions from the AI (via n8n), it parses the response, updates local files, and triggers 'terraform apply' automatically.
 
-## ⚡ Key Features
+### 3. Control Plane Dashboard
+- 'dashboard.py' (Streamlit): A centralized management interface providing:
+    - Real-time Docker status: Monitoring the health of all containers (Postgres, LocalStack, Nginx, etc.).
+    - AI Memory Management: Direct access to the PostgreSQL backend to view chat history and context logs.
+    - Sync Triggers: Manual triggers for codebase synchronization.
+    - Observability Panels: Embedded Grafana dashboards for performance and log analysis.
 
-* **Secure Configuration:** Zero hardcoded credentials. Full compliance using environment variable separation (.env).
-* **Clean Telemetry Iframe Embedding:** Grafana panels are stripped of administrative navigation bars using d-solo solo-panel endpoints for a native application feel.
-* **Live Docker Health Tracking:** Interactive dashboard sidebar communicating directly with docker.sock to report service states (🟢 Active / 🔴 Offline).
-* **Automated Cold Starts:** LocalStack auto-provisions necessary AWS SQS infrastructure on boot using container initialization scripts (init-sqs/).
+### 4. Observability Stack
+- Prometheus: Collects metrics from the host node, Nginx, and the K8s cluster.
+- Grafana: Visualizes system performance (CPU, Memory, Traffic) via custom dashboards.
+- Loki & Promtail: Aggregates and analyzes logs from all running containers.
+- Alertmanager: Sends critical infrastructure alerts (e.g., Nginx Down, High CPU) directly to Telegram.
 
----
+## 🛠️ Tech Stack
+- IaC: Terraform, LocalStack, Checkov.
+- Orchestration: Kubernetes (Kind), Docker Compose.
+- Automation: n8n (Workflow Orchestration).
+- Monitoring: Prometheus, Grafana, Loki, Promtail, Alertmanager.
+- Backend/AI: Python, PostgreSQL, Streamlit, Boto3.
 
-## 🛠️ Quick Start & Setup
+## 🚀 Getting Started
 
 ### Prerequisites
-* Docker Desktop installed on macOS / Linux / Windows.
-* Python 3.10+ installed locally.
+- Docker & Docker Compose
+- Kind (Kubernetes in Docker)
+- Python 3.x
 
-### 1. Clone & Organize
-Clone this repository to your local machine and ensure your structure mirrors the production schema.
+'''markdown
+### Setup
+1. Environment Configuration: Create a '.env' file in the root directory:
+   '''env
+   TELEGRAM BOT TOKEN=your token
+   TELEGRAM CHAT ID=your chat id
+   DB USERNAME=your db username
+   DB PASSWORD=your db password
+   SESSION ID=your session id
+   '''
+2. Launch Infrastructure:
+   '''bash
+   docker-compose up -d
+   '''
+3. Launch Dashboard:
+   '''bash
+   streamlit run dashboard.py
+   '''
+4. Debug SQS: Use the provided script to check the queue:
+   '''bash
+   python3 scripts/debug sqs.py
+   '''
+'''
 
-### 2. Environment Configuration
-Duplicate the configuration template and populate your secure credentials:
+## 📂 Project Structure
+- '/modules': Terraform modules (Network, Compute, K8s).
+- '/grafana': Grafana dashboards and provisioning configurations.
+- '/scripts': Utility scripts for debugging and queue management.
+- 'listen to ai.py': The core automation engine.
+- 'dashboard.py': The central control plane.
+- 'n8n workflow.json': The n8n automation workflow definition.
+- 'bridge.py': The context synchronization bridge.
+- 'alert rules.yml': Prometheus alerting rules.
+- 'docker-compose.yml': Multi-container orchestration definition.
 
-cp .env.example .env
+## 🧠 AI Agent Workflow
+The system operates on a closed-loop feedback mechanism:
+1. Context Ingestion: 'bridge.py' scans the project and sends the current state to the AI Agent via n8n.
+2. Decision Making: The AI Agent (Gemini) analyzes the infrastructure state and determines if changes are required.
+3. Execution: If changes are needed, the AI sends a command to the SQS queue.
+4. Automation: 'listen to ai.py' picks up the command, applies the code changes to the disk, and executes 'terraform apply'.
+5. Verification: The system verifies the deployment and reports back to the user via Telegram.
 
-*Open .env and insert your secure database passwords, Telegram Bot tokens, and Gemini API keys.*
+## 📊 Observability & Alerting
+- Metrics: Prometheus scrapes metrics from the host and K8s cluster.
+- Visualization: Grafana provides a unified view of system health.
+- Log Aggregation: Loki collects logs from all containers, allowing for deep troubleshooting.
+- Alerting: Alertmanager monitors for critical thresholds (e.g., Nginx downtime) and pushes notifications to your Telegram bot.
 
-### 3. Spin Up the Infrastructure
-Launch all microservices in detached mode:
+## 🛡️ Security & Best Practices
+- IaC Scanning: The project includes a '.checkov.yml' configuration to enforce security standards on Terraform code.
+- Resource Limits: All containers in 'docker-compose.yml' are configured with CPU and memory limits to ensure system stability.
+- Environment Isolation: Sensitive data is managed via '.env' files and not hardcoded.
 
-docker-compose up -d
-
-*LocalStack will automatically run init-sqs/init.sh to construct your active queues.*
-
-### 4. Install Dependencies & Launch Dashboard
-Install the required Python modules and execute the live control plane:
-
-pip install -r requirements.txt
-streamlit run dashboard.py
+## 💡 Troubleshooting
+- Check SQS: If the AI is not responding, run 'python3 scripts/debug sqs.py' to see if messages are stuck in the queue.
+- Check Logs: Use 'docker logs -f <container name>' to inspect specific service logs.
+- Dashboard: The Streamlit dashboard is your primary tool for monitoring the AI's memory and infrastructure health.
 
 ---
-
-## 🚨 Incident Management & Production Alignment
-Alerting rules are set via Prometheus to automatically dispatch system failures to alertmanager. Utilizing an automated webhook, alerts are routed straight back into your integrated messaging services (Telegram) ensuring absolute system awareness.
+Built with ❤️ for DevOps Automation.
+'''

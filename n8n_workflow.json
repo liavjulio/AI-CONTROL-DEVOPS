@@ -1,0 +1,345 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dev-agent",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1040,
+        32
+      ],
+      "id": "b7580c3a-c174-4ff5-84f5-363367711a96",
+      "name": "Webhook",
+      "webhookId": "621b162c-3f6b-4932-98a2-cd8c54897898"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sqs.il-central-1.localhost.localstack.cloud:4566/000000000000/codex-ai-responses",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "Action",
+              "value": "SendMessage"
+            },
+            {
+              "name": "QueueUrl",
+              "value": "http://host.docker.internal:4566/000000000000/codex-ai-responses"
+            },
+            {
+              "name": "Version",
+              "value": "2012-11-05"
+            },
+            {
+              "name": "MessageBody",
+              "value": "={{ $json.output || $json.text || \"No Message\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        288,
+        256
+      ],
+      "id": "3095481e-d86a-45d9-b2dd-fe786ae44957",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "chatId": "1044517087",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        -80
+      ],
+      "id": "2969cc39-c7fe-411b-b587-d9e6cab2f0cf",
+      "name": "Telegram Message",
+      "webhookId": "426e5f95-e531-4ddf-a5d9-90c8aeebfbff",
+      "credentials": {
+        "telegramApi": {
+          "id": "tuv29AAabYYvC93T",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body?.files || $json.body?.message?.text || $json.message?.text || \"No input detected\" }}",
+        "options": {
+          "systemMessage": "You are a DevOps AI specialized in Terraform and Kubernetes.\n\n### RULE #1: INITIAL SUGGESTIONS\nWhen you suggest a fix, you MUST use the following format for code blocks:\n[PROPOSED] filename\n\nNEVER use the string \"### FILE:\" during this phase.\n\n### RULE #2: APPROVAL PROTOCOL\n1. Explain the issue and the solution.\n2. Provide the code using the [PROPOSED] format above.\n3. End your message with: \"להחיל את השינויים?\"\n4. STOP. Do not provide any more information.\n\n### RULE #3: EXECUTION PHASE (ONLY AFTER APPROVAL)\nONLY if the user explicitly says \"yes\", \"approve\", \"אשר\", or \"כן\", you are allowed to output the code using the format: \n### FILE: filename\n(Full code goes here)\n\n### MANDATORY RESTRICTION:\nThe string \"### FILE:\" is a SYSTEM COMMAND that triggers an automatic write to the user's disk. Using it without explicit approval is a CRITICAL FAILURE of your protocol."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -496,
+        128
+      ],
+      "id": "6cdb41c0-1b5f-469c-9377-0af67173491c",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "maxOutputTokens": 4096,
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        352
+      ],
+      "id": "759c999f-9c20-40e0-9aff-01d946ceb571",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6j9gLHxGkonQbGQp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1024,
+        224
+      ],
+      "id": "97690452-beb7-477f-84f4-7cc377339a08",
+      "name": "Telegram Trigger",
+      "webhookId": "75789953-597f-44b8-aa14-128922d95967",
+      "credentials": {
+        "telegramApi": {
+          "id": "tuv29AAabYYvC93T",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfor (const item of $input.all()) {\n  let text = item.json.output || \"\";\n  \n  // הגבלת אורך\n  text = text.length > 3000 ? text.substring(0, 3000) + \"...\" : text;\n\n  // ניקוי תווים מיוחדים שגורמים לשגיאות Parsing בטלגרם\n  // אנחנו מחליפים אותם בתווים דומים שלא מפעילים את ה-Markdown\n  text = text\n    .replace(/\\*/g, \"\")  // מסיר כוכביות\n    .replace(/_/g, \" \")  // מחליף קו תחתי ברווח\n    .replace(/`/g, \"'\")  // מחליף גרש הפוך בגרש רגיל\n    .replace(/\\[/g, \"(\") // מחליף סוגריים מרובעים\n    .replace(/\\]/g, \")\");\n\n  item.json.output = text;\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        96
+      ],
+      "id": "41e62fa4-a246-49bb-a5ac-504e993398e7",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b8ed2655-5ae8-4010-adda-414521fa04f4",
+              "leftValue": "={{ $node[\"Telegram Trigger\"].json.message ? \"from_user\" : \"from_system\" }}",
+              "rightValue": "from_user",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        272,
+        0
+      ],
+      "id": "b463382b-8141-4b4e-b160-793b0c3e0ac1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d7fa0dd2-3959-438d-a58d-06f2b3e10743",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "### FILE:",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -48,
+        256
+      ],
+      "id": "01121dd8-41e8-4cf1-915d-124cd2e0c20e",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body?.session_id || $json.message?.chat?.id || $('Webhook')?.item?.json?.body?.session_id || $('Telegram Trigger')?.item?.json?.message?.chat?.id }}",
+        "tableName": "chat_messages",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -368,
+        352
+      ],
+      "id": "ad70bec1-a014-447c-98a4-19a72b446bdc",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "oZuAI0UyjBCMNGDT",
+          "name": "Unnamed credential"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "873e98bd31fda8c1561b9445c834d5f00b87dfcdf1afe58431858bdad5ee9892"
+  }
+}
