@@ -44,29 +44,28 @@ The system is designed as a complex local development environment simulating a f
 - Kind (Kubernetes in Docker)
 - Python 3.x
 
-'''markdown
 ### Setup
 1. Environment Configuration: Create a '.env' file in the root directory:
-   '''env
+   env
    TELEGRAM BOT TOKEN=your token
    TELEGRAM CHAT ID=your chat id
    DB USERNAME=your db username
    DB PASSWORD=your db password
    SESSION ID=your session id
-   '''
+   
 2. Launch Infrastructure:
-   '''bash
+   bash
    docker-compose up -d
-   '''
+   
 3. Launch Dashboard:
    '''bash
    streamlit run dashboard.py
-   '''
+   
 4. Debug SQS: Use the provided script to check the queue:
-   '''bash
+   bash
    python3 scripts/debug sqs.py
-   '''
-'''
+   
+
 
 ## 📂 Project Structure
 - '/modules': Terraform modules (Network, Compute, K8s).
@@ -105,4 +104,3 @@ The system operates on a closed-loop feedback mechanism:
 
 ---
 Built with ❤️ for DevOps Automation.
-'''
