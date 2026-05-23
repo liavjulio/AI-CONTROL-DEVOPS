@@ -1,3 +1,13 @@
+terraform {
+  required_version = ">= 1.6.6"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0.0"
+    }
+  }
+}
+
 resource "aws_security_group" "allow_web" {
   name   = "allow_web_traffic"
   vpc_id = var.vpc_id
