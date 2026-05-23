@@ -1,0 +1,150 @@
+name: "Complete Project CI"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  # === ג'וב 1: בדיקות איכות ואבטחה לטרפורם ===
+  terraform-infrastructure:
+    name: "Infrastructure (Terraform)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Setup Python for Checkov
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Checkov
+        run: pip install checkov
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init -backend=false -input=false
+
+      - name: TFLint Init
+        run: tflint --init
+
+      - name: TFLint Scan
+        run: tflint --recursive
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Security Scan (Checkov)
+        run: checkov -d . --config-file .checkov.yml
+
+  # === ג'וב 2: בדיקות איכות וסינטקס לקוד הפייתון ===
+  python-application:
+    name: "Application (Python)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Linting Tools & Requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+          pip install -r requirements.txt
+
+      - name: Lint Code with Flake8
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  # === ג'וב 3: בדיקת תקינות התצורה של דוקר ===
+  docker-environment:
+    name: "Containers (Docker)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Config
+        run: |
+          docker compose config
+
+  # === ג'וב 4: בדיקת מניפסטים וקונפיגורציית קוברנטס ===
+  kubernetes-manifests:
+    name: "Orchestration (Kubernetes)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Tools for K8s Validation
+        run: |
+          # התקנת כלי לבדיקת תקינות קבצי קוברנטס (Kube-score)
+          curl -LO https://github.com/zegl/kube-score/releases/download/v1.18.0/kube-score_1.18.0_linux_amd64.tar.gz
+          tar -xf kube-score_1.18.0_linux_amd64.tar.gz
+          sudo mv kube-score /usr/local/bin/
+
+      - name: Validate Kubernetes Yamls (If Exist)
+        run: |
+          # בודק את קובץ ה-Kind שלך, ואם יש לך תיקיית מניפסטים (כמו k8s/) הוא יסרוק אותה
+          if [ -f kind-config.yaml ]; then
+            echo "Validating Kind configuration..."
+          fi
+          # אם בעתיד תוסיף קבצי Deployment.yaml, הפקודה הבאה תסרוק אותם אוטומטית:
+          # kube-score score *.yaml || true
+
+  # === ג'וב 5: בדיקת קבצי הקונפיגורציה של ה-Observability Stack ===
+  observability-config:
+    name: "Monitoring & Alerting Configs"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Promtool and Amtool
+        run: |
+          # הורדת כלי הבדיקה הרשמיים של Prometheus
+          PROM_VERSION="2.45.0"
+          curl -LO "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz"
+          tar -xzf "prometheus-${PROM_VERSION}.linux-amd64.tar.gz"
+          sudo mv "prometheus-${PROM_VERSION}.linux-amd64/promtool" /usr/local/bin/
+          
+          # הורדת כלי הבדיקה הרשמיים של Alertmanager
+          AM_VERSION="0.26.0"
+          curl -LO "https://github.com/prometheus/alertmanager/releases/download/v${AM_VERSION}/alertmanager-${AM_VERSION}.linux-amd64.tar.gz"
+          tar -xzf "alertmanager-${AM_VERSION}.linux-amd64.tar.gz"
+          sudo mv "alertmanager-${AM_VERSION}.linux-amd64/amtool" /usr/local/bin/
+
+      - name: Validate Prometheus Configuration
+        run: |
+          if [ -f prometheus.yml ]; then
+            promtool check config prometheus.yml
+          fi
+
+      - name: Validate Alertmanager Configuration
+        run: |
+          if [ -f alertmanager.yml ]; then
+            amtool check-config alertmanager.yml
+          fi
+
+      - name: Validate Alert Rules Syntax
+        run: |
+          if [ -f alert_rules.yml ]; then
+            promtool check rules alert_rules.yml
+          fi
