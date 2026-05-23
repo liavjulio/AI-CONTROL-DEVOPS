@@ -195,7 +195,7 @@ services:
           memory: 128M  
 
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:v0.26.0
     container_name: alertmanager
     restart: unless-stopped
     environment:
@@ -203,7 +203,6 @@ services:
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--config.file.expand-env'
     ports:
       - "9093:9093"
     volumes:

@@ -8,6 +8,6 @@ receivers:
   - name: 'telegram'
     telegram_configs:
       - bot_token: '${TELEGRAM_BOT_TOKEN}'
-        chat_id: ${TELEGRAM_CHAT_ID}
+        chat_id: 1044517087
         send_resolved: true
         message: "🚨 *Alert:* {{ .CommonAnnotations.summary }}\n\n*Description:* {{ .CommonAnnotations.description }}\n*Severity:* {{ .CommonLabels.severity }}"
