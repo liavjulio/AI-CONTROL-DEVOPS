@@ -45,7 +45,6 @@ def check_container_status():
             "grafana": "Grafana Dashboards",
             "prometheus": "Prometheus Metrics",
             "loki": "Loki Log Aggregator",
-            "liav-web-server": "Nginx Reverse Proxy"
         }
         
         status_dict = {}
@@ -63,8 +62,16 @@ def check_container_status():
     except Exception as e:
         st.sidebar.error("❌ Failed to communicate with Docker Daemon")
         return {}
-
 statuses = check_container_status()
+try:
+    # פונים לפורט שפתחנו בקוברנטס
+    response = requests.get("http://localhost:30080", timeout=2)
+    if response.status_code == 200:
+        statuses["Nginx Reverse Proxy"] = "🟢 Active (K8s)"
+    else:
+        statuses["Nginx Reverse Proxy"] = f"🟡 Status {response.status_code}"
+except requests.exceptions.RequestException:
+    statuses["Nginx Reverse Proxy"] = "🔴 Offline"
 for name, status in statuses.items():
     st.sidebar.write(f"**{name}:** {status}")
 

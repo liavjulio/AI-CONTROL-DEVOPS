@@ -133,13 +133,13 @@ module "network" {
   public_subnet_cidr = var.public_subnet_cidr
 }
 
-module "compute" {
-  source = "./modules/compute"
+#module "compute" {
+#  source = "./modules/compute"
 
-  vpc_id           = module.network.vpc_id
-  public_subnet_id = module.network.public_subnet_id
-  instance_type    = var.instance_type
-}
+#  vpc_id           = module.network.vpc_id
+#  public_subnet_id = module.network.public_subnet_id
+#  instance_type    = var.instance_type
+#}
 
 module "kubernetes" {
   count  = var.enable_kubernetes ? 1 : 0
@@ -161,10 +161,10 @@ output "state_lock_table_name" {
   value       = var.enable_dynamodb_lock_table ? aws_dynamodb_table.terraform_locks[0].name : null
 }
 
-output "web_instance_public_ip" {
-  description = "Public IP reported by the local EC2-compatible instance resource."
-  value       = module.compute.server_ip
-}
+#output "web_instance_public_ip" {
+#  description = "Public IP reported by the local EC2-compatible instance resource."
+#  value       = module.compute.server_ip
+#}
 
 output "local_service_urls" {
   description = "Useful local URLs for the demo platform."

@@ -165,6 +165,7 @@ resource "kubernetes_service" "nginx_service" {
       name        = "http"
       port        = 80
       target_port = 80
+      node_port   = 30080
     }
     port {
       name        = "metrics"
