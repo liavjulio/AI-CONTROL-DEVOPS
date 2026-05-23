@@ -8,8 +8,8 @@ variable "public_subnet_id" {
   type        = string
 }
 
-variable "instance_type" {
-  description = "Instance type for the local EC2-compatible instance."
-  type        = string
-  default     = "t2.micro"
-}
+#variable "instance_type" {
+#  description = "Instance type for the local EC2-compatible instance."
+#  type        = string
+#  default     = "t2.micro"
+#}
