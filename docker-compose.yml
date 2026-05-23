@@ -4,8 +4,8 @@ services:
     container_name: postgres-db
     restart: always
     environment:
-      POSTGRES_USER: n8n_user
-      POSTGRES_PASSWORD: password123
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ai_memory
     volumes:
       - ./postgres_data:/var/lib/postgresql/data

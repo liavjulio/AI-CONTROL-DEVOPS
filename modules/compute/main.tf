@@ -10,6 +10,7 @@ terraform {
 
 resource "aws_security_group" "allow_web" {
   name   = "allow_web_traffic"
+  description = "Security group for web server traffic and SSH" # תיאור לקבוצה
   vpc_id = var.vpc_id
 
   ingress {
@@ -27,9 +28,18 @@ resource "aws_security_group" "allow_web" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Allow secure outbound web traffic"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow standard outbound web traffic"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -39,6 +49,10 @@ resource "aws_instance" "web_server" {
   instance_type          = var.instance_type
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [aws_security_group.allow_web.id]
+  
+  root_block_device {
+    encrypted = true
+  }
 
   user_data = <<-EOF
 #!/bin/bash

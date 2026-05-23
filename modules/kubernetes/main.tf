@@ -29,12 +29,59 @@ resource "kubernetes_deployment" "nginx" {
         labels = { app = "nginx" }
       }
       spec {
+        # קונטקסט אבטחה ברמת הפוד - מניעת ריצה כ-Root והגבלת Capabilities
+        security_context {
+          run_as_non_root = true
+          run_as_user     = 101
+          fs_group        = 101
+        }
+
         container {
-          image = "nginx:latest"
+          image = "nginx:1.25.3" # שימוש בגרסה קשיחה במקום latest
           name  = "nginx"
+          
           port { container_port = 80 }
 
-          # קישור הקונפיגורציה לתוך ה-Container של Nginx
+          # קונטקסט אבטחה ברמת הקונטיינר
+          security_context {
+            allow_privilege_escalation = false
+            read_only_root_filesystem  = false # Nginx צריך לכתוב לקבצים זמניים מסוימים בריצה
+            capabilities {
+              drop = ["ALL"]
+            }
+          }
+
+          # הגדרת משאבים קשיחה (חוסך נפילות זיכרון)
+          resources {
+            limits = {
+              cpu    = "500m"
+              memory = "512Mi"
+            }
+            requests = {
+              cpu    = "250m"
+              memory = "256Mi"
+            }
+          }
+
+          # בדיקות תקינות וחיות של השרת
+          liveness_probe {
+            http_get {
+              path = "/"
+              port = 80
+            }
+            initial_delay_seconds = 15
+            period_seconds        = 20
+          }
+
+          readiness_probe {
+            http_get {
+              path = "/"
+              port = 80
+            }
+            initial_delay_seconds = 5
+            period_seconds        = 10
+          }
+
           volume_mount {
             name       = "config-volume"
             mount_path = "/etc/nginx/conf.d"
@@ -44,12 +91,29 @@ resource "kubernetes_deployment" "nginx" {
 
         container {
           name  = "nginx-exporter"
-          image = "nginx/nginx-prometheus-exporter:latest"
+          image = "nginx/nginx-prometheus-exporter:1.0.0" # גרסה קשיחה
           args  = ["-nginx.scrape-uri", "http://localhost:80/stub_status"]
           port { container_port = 9113 }
+
+          security_context {
+            allow_privilege_escalation = false
+            capabilities {
+              drop = ["ALL"]
+            }
+          }
+
+          resources {
+            limits = {
+              cpu    = "200m"
+              memory = "256Mi"
+            }
+            requests = {
+              cpu    = "100m"
+              memory = "128Mi"
+            }
+          }
         }
 
-        # הגדרת ה-Volume שמושך את הנתונים מה-ConfigMap
         volume {
           name = "config-volume"
           config_map {

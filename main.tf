@@ -46,17 +46,55 @@ locals {
 }
 
 resource "aws_sqs_queue" "codex_responses" {
-  name = "codex-ai-responses"
+  name                              = "codex-ai-responses"
+  kms_master_key_id                 = "alias/aws/sqs" # הצפנת נתונים במנוחה
+  kms_data_key_reuse_period_seconds = 300
 
   tags = local.common_tags
 }
 
+# באקט S3 מעודכן עם פוליסי אבטחה מלא
 resource "aws_s3_bucket" "terraform_state" {
   bucket = var.state_bucket_name
 
   tags = merge(local.common_tags, {
     Name = "local-terraform-state"
   })
+
+  # החריגות של צ'קוב לדברים שלא רלוונטיים לסביבה מקומית:
+  # checkov:skip=CKV_AWS_144: Cross Region Replication is not required for local infra
+  # checkov:skip=CKV_AWS_18: Access logging is not required for local state bucket
+  # checkov:skip=CKV2_AWS_62: Event notifications not required for local deployment
+  # checkov:skip=CKV2_AWS_61: Lifecycle configuration not required for local development
+}
+
+# הפעלת Versioning על ה-S3
+resource "aws_s3_bucket_versioning" "state_versioning" {
+  bucket = aws_s3_bucket.terraform_state.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# הצפנת באקט ה-S3 כברירת מחדל
+resource "aws_s3_bucket_server_side_encryption_configuration" "state_crypto" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# חסימה מוחלטת של גישה ציבורית לבאקט ה-S3
+resource "aws_s3_bucket_public_access_block" "state_privacy" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "state_encryption" {
