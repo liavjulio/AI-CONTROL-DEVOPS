@@ -50,11 +50,11 @@ variable "public_subnet_cidr" {
   }
 }
 
-variable "instance_type" {
-  description = "Instance type used for the simulated EC2 web node."
-  type        = string
-  default     = "t2.micro"
-}
+#variable "instance_type" {
+#  description = "Instance type used for the simulated EC2 web node."
+#  type        = string
+#  default     = "t2.micro"
+#}
 
 variable "enable_kubernetes" {
   description = "Whether to deploy the local Kubernetes nginx workload to the current kube context."
