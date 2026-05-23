@@ -88,6 +88,14 @@ resource "kubernetes_deployment" "nginx" {
             mount_path = "/etc/nginx/conf.d"
             read_only  = true
           }
+          volume_mount {
+            name       = "nginx-cache"
+            mount_path = "/var/cache/nginx"
+          }
+          volume_mount {
+            name       = "nginx-pid"
+            mount_path = "/var/run"
+          }
         }
 
         container {
@@ -122,6 +130,14 @@ resource "kubernetes_deployment" "nginx" {
           config_map {
             name = kubernetes_config_map.nginx_config.metadata[0].name
           }
+        }
+        volume {
+          name = "nginx-cache"
+          empty_dir {}
+        }
+        volume {
+          name = "nginx-pid"
+          empty_dir {}
         }
       }
     }
