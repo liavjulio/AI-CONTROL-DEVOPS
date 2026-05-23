@@ -9,9 +9,9 @@ terraform {
 }
 
 resource "aws_security_group" "allow_web" {
-  name   = "allow_web_traffic"
+  name        = "allow_web_traffic"
   description = "Security group for web server traffic and SSH" # תיאור לקבוצה
-  vpc_id = var.vpc_id
+  vpc_id      = var.vpc_id
 
   ingress {
     from_port   = 80
@@ -49,7 +49,7 @@ resource "aws_instance" "web_server" {
   instance_type          = var.instance_type
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [aws_security_group.allow_web.id]
-  
+
   root_block_device {
     encrypted = true
   }

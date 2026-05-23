@@ -39,7 +39,7 @@ resource "kubernetes_deployment" "nginx" {
         container {
           image = "nginx:1.25.3" # שימוש בגרסה קשיחה במקום latest
           name  = "nginx"
-          
+
           port { container_port = 80 }
 
           # קונטקסט אבטחה ברמת הקונטיינר
