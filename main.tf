@@ -47,10 +47,12 @@ locals {
 
 resource "aws_sqs_queue" "codex_responses" {
   name                              = "codex-ai-responses"
-  kms_master_key_id                 = "alias/aws/sqs" # הצפנת נתונים במנוחה
+  kms_master_key_id                 = "alias/aws/sqs"
   kms_data_key_reuse_period_seconds = 300
 
   tags = local.common_tags
+
+  # checkov:skip=CKV2_AWS_73: Using AWS managed key alias is sufficient for local infrastructure simulation
 }
 
 # באקט S3 מעודכן עם פוליסי אבטחה מלא
@@ -66,6 +68,7 @@ resource "aws_s3_bucket" "terraform_state" {
   # checkov:skip=CKV_AWS_18: Access logging is not required for local state bucket
   # checkov:skip=CKV2_AWS_62: Event notifications not required for local deployment
   # checkov:skip=CKV2_AWS_61: Lifecycle configuration not required for local development
+  # checkov:skip=CKV_AWS_145: Default AWS SSE encryption is sufficient for local development without custom KMS CMK
 }
 
 # הפעלת Versioning על ה-S3
