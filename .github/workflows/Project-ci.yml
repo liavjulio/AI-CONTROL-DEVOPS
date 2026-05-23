@@ -140,7 +140,14 @@ jobs:
       - name: Validate Alertmanager Configuration
         run: |
           if [ -f alertmanager.yml ]; then
-            amtool check-config alertmanager.yml
+            # יצירת קובץ זמני שבו מחליפים את משתנה הסביבה במספר פיקטיבי כדי שהבודק יעבור
+            sed 's/\${TELEGRAM_CHAT_ID}/123456789/g' alertmanager.yml > alertmanager_tmp.yml
+            
+            # הרצת הבדיקה על הקובץ הזמני
+            amtool check-config alertmanager_tmp.yml
+            
+            # מחיקת הקובץ הזמני
+            rm alertmanager_tmp.yml
           fi
 
       - name: Validate Alert Rules Syntax
